@@ -19,6 +19,8 @@ export default function SmoothScroll() {
     if (reduce || touch) return;
     const lenis = new Lenis({ lerp: 0.1, wheelMultiplier: 1, autoRaf: false, anchors: true });
     window.__lenis = lenis;
+    lenis.start();
+    document.documentElement.classList.remove('lenis-stopped');
     const off = addTicker((t) => lenis.raf(t * 1000), -10);
     return () => {
       off();

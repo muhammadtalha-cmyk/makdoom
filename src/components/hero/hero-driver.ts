@@ -47,6 +47,7 @@ export class HeroDriver {
     };
     window.addEventListener('resize', remeasure);
     window.addEventListener('load', remeasure);
+    window.addEventListener('mk:hero-ready', remeasure);
     const ro = new ResizeObserver(remeasure);
     ro.observe(el);
     ro.observe(document.body);
@@ -68,6 +69,7 @@ export class HeroDriver {
       this.setupSnap(),
       () => window.removeEventListener('resize', remeasure),
       () => window.removeEventListener('load', remeasure),
+      () => window.removeEventListener('mk:hero-ready', remeasure),
       () => window.removeEventListener('pointermove', onPointer),
       () => ro.disconnect(),
       () => io.disconnect(),

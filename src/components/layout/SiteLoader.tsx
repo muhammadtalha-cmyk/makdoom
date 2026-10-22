@@ -6,8 +6,8 @@ declare global {
   interface Window { __mkHeroReady?: boolean }
 }
 
-const MIN_MS = 1100; // never flash: let the branded animation play at least this long
-const MAX_MS = 3500; // never trap a visitor: the page opens after this no matter what (slow networks included)
+const MIN_MS = 500; // brief branded intro without blocking the user
+const MAX_MS = 1200; // never trap a visitor: page opens promptly on any network
 
 /**
  * Full-screen branded loading page. It is part of the server-rendered HTML (pure CSS animation), so it is on screen
@@ -21,8 +21,11 @@ export default function SiteLoader() {
   useEffect(() => {
     const root = document.documentElement;
     root.classList.add('mk-loading');
-    // Lenis is created by a sibling effect that runs after this one, so stop it on the next frame
-    const lock = requestAnimationFrame(() => window.__lenis?.stop());
+
+    const unlock = () => {
+      root.classList.remove('mk-loading', 'mk-boot', 'lenis-stopped');
+      window.__lenis?.start();
+    };
 
     let finished = false;
     let leave = 0;
@@ -30,26 +33,24 @@ export default function SiteLoader() {
     const finish = () => {
       if (finished) return;
       finished = true;
-      const wait = Math.max(0, MIN_MS - performance.now()); // performance.now() counts from the start of navigation
+      const wait = Math.max(0, MIN_MS - performance.now());
       leave = window.setTimeout(() => {
         setPhase('leaving');
-        root.classList.remove('mk-loading', 'mk-boot');
-        window.__lenis?.start();
-        gone = window.setTimeout(() => setPhase('gone'), 900);
+        unlock();
+        gone = window.setTimeout(() => setPhase('gone'), 600);
       }, wait);
     };
 
-    // ready = hydrated (we are running) + fonts settled. Fonts are raced against a timeout so a slow font can never hold the page.
+    // ready = hydrated (we are running) + fonts settled. Fonts are raced against a fast fallback so slow fonts never stall the page.
     const fonts = (document.fonts?.ready ?? Promise.resolve()).catch(() => undefined);
-    void Promise.race([fonts, new Promise((r) => window.setTimeout(r, 1800))]).then(finish);
+    void Promise.race([fonts, new Promise((r) => window.setTimeout(r, 600))]).then(finish);
     const cap = window.setTimeout(finish, MAX_MS);
 
     return () => {
       window.clearTimeout(cap);
       window.clearTimeout(leave);
       window.clearTimeout(gone);
-      cancelAnimationFrame(lock);
-      root.classList.remove('mk-loading', 'mk-boot');
+      unlock();
     };
   }, []);
 
