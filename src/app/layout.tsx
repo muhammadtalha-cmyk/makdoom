@@ -24,6 +24,7 @@ export const metadata: Metadata = {
   icons: { icon: '/favicon.png', apple: '/apple-touch-icon.png' },
   manifest: '/manifest.webmanifest',
   alternates: { canonical: '/' },
+  verification: { google: 'google70675cb061893c1b' },
 };
 
 export const viewport: Viewport = { themeColor: '#050505', width: 'device-width', initialScale: 1 };
