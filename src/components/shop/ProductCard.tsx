@@ -61,7 +61,7 @@ export default function ProductCard({ product, priority = false }: { product: Pr
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
         </div>
         {product.compare_at_price && product.compare_at_price > product.price && (
-          <span className="glass absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-semibold text-gold-100">
+          <span className="absolute left-3 top-3 rounded-full bg-black/90 px-3 py-1 text-[11px] font-semibold text-white shadow-sm backdrop-blur-sm">
             {product.is_bundle ? `Save Rs. ${(product.compare_at_price - product.price).toLocaleString('en-PK')}` : `${Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100)}% off`}
           </span>
         )}
