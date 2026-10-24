@@ -10,14 +10,15 @@ const moods: Record<string, { title: string; text: string; image: string; ratio:
   flova: { title: 'Soft and floral', text: 'A fresh floral with a gentle, elegant finish that feels effortless.', image: '/images/story/flova-roses.webp', ratio: 'aspect-[4/5] lg:aspect-[3/4]' },
 };
 
-export default function Mood({ products }: { products: Product[] }) {
+/** `images` lets the owner replace a card picture from the dashboard (keyed by product slug); anything missing keeps the bundled picture. */
+export default function Mood({ products, images = {} }: { products: Product[]; images?: Partial<Record<string, string>> }) {
   const list = products.filter((p) => moods[p.slug]);
   const col = (ids: string[]) => list.filter((p) => ids.includes(p.slug));
   const card = (p: Product) => {
     const m = moods[p.slug];
     return (
       <Link key={p.slug} href={`/product/${p.slug}`} className="group relative block">
-        <ParallaxImage src={m.image} alt={`${p.name} perfume — ${m.title}`} sizes="(min-width:1024px) 40vw, 100vw" className={m.ratio} position={m.pos} strength={7} />
+        <ParallaxImage src={images[p.slug] ?? m.image} alt={`${p.name} perfume — ${m.title}`} sizes="(min-width:1024px) 40vw, 100vw" className={m.ratio} position={m.pos} strength={7} />
         <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-gradient-to-t from-black/80 via-transparent to-transparent" />
         <div className="absolute inset-x-5 bottom-5">
           <h3 className="font-display text-4xl font-medium leading-none">{m.title}</h3>

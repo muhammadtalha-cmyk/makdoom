@@ -13,6 +13,7 @@ import Footer from '@/components/layout/Footer';
 import CartDrawer from '@/components/layout/CartDrawer';
 import WhatsAppFab from '@/components/layout/WhatsAppFab';
 import SiteLoader from '@/components/layout/SiteLoader';
+import { getSiteSettings } from '@/lib/site-settings';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -24,27 +25,27 @@ export const metadata: Metadata = {
   icons: { icon: '/favicon.png', apple: '/apple-touch-icon.png' },
   manifest: '/manifest.webmanifest',
   alternates: { canonical: '/' },
-  verification: { google: 'google70675cb061893c1b' },
 };
 
 export const viewport: Viewport = { themeColor: '#050505', width: 'device-width', initialScale: 1 };
 
-const orgJsonLd = {
+const orgJsonLd = (sameAs: string[]) => ({
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: SITE.name,
   url: SITE.url,
   logo: `${SITE.url}/images/brand/logo-original.jpg`,
   email: SITE.email,
-  sameAs: Object.values(SITE.socials),
-};
+  sameAs,
+});
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const { socials } = await getSiteSettings();
   return (
     <html lang="en-PK" className="mk-boot">
       <body>
         <noscript><style>{'html.mk-boot .hero-rise{animation:rise 1s both;opacity:1}.mk-loader{display:none!important}'}</style></noscript>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd(socials.map((s) => s.url))) }} />
         <SiteLoader />
         <Providers>
           <a href="#main" className="sr-only z-[100] rounded-full bg-gold-300 px-4 py-2 font-semibold text-black focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>

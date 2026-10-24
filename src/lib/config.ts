@@ -13,11 +13,12 @@ export const SITE = {
   whatsapp: (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '923488317780').replace(/\D/g, ''),
   whatsappCatalog: 'https://wa.me/c/923488317780',
   email: process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? 'makhdoomfragrances@gmail.com',
-  // PLACEHOLDERS — replace with the brand's real profile URLs (env vars) before launch.
+  // Optional fallbacks. The owner normally manages social links in the dashboard ("Social links" tab); a link that is
+  // neither saved there nor set here is simply not shown (no more dead placeholder links).
   socials: {
-    instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? 'https://www.instagram.com/',
-    facebook: process.env.NEXT_PUBLIC_FACEBOOK_URL ?? 'https://www.facebook.com/',
-    tiktok: process.env.NEXT_PUBLIC_TIKTOK_URL ?? 'https://www.tiktok.com/',
+    instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? '',
+    facebook: process.env.NEXT_PUBLIC_FACEBOOK_URL ?? '',
+    tiktok: process.env.NEXT_PUBLIC_TIKTOK_URL ?? '',
   },
 } as const;
 

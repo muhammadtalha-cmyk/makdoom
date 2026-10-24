@@ -4,12 +4,12 @@ import { formatPKR } from '@/lib/format';
 import ParallaxImage from '@/components/ui/ParallaxImage';
 import AddToCartButton from '@/components/shop/AddToCartButton';
 
-export default function CoupleFeature({ product }: { product: Product }) {
+export default function CoupleFeature({ product, image = '/images/story/couple-wide.webp' }: { product: Product; image?: string }) {
   const save = (product.compare_at_price ?? product.price) - product.price;
   return (
     <section className="section-y !pt-0" aria-labelledby="couple-h">
       <div className="container-x grid items-stretch gap-5 lg:grid-cols-12 lg:gap-6">
-        <ParallaxImage src="/images/story/couple-wide.webp" alt="Cyrus and Flova bottles with their black gift boxes and rose petals on dark marble" sizes="(min-width:1024px) 58vw, 100vw" className="aspect-[4/3] lg:col-span-7 lg:aspect-auto lg:min-h-[560px]" position="center 55%" strength={5} />
+        <ParallaxImage src={image} alt="Cyrus and Flova bottles with their black gift boxes and rose petals on dark marble" sizes="(min-width:1024px) 58vw, 100vw" className="aspect-[4/3] lg:col-span-7 lg:aspect-auto lg:min-h-[560px]" position="center 55%" strength={5} />
         <div className="glass-strong flex flex-col justify-center rounded-[28px] p-7 sm:p-10 lg:col-span-5">
           <p className="text-sm font-medium text-gold-200">Cyrus + Flova</p>
           <h2 id="couple-h" className="mt-1 font-display text-5xl font-medium leading-[0.95] sm:text-6xl">The couple deal</h2>

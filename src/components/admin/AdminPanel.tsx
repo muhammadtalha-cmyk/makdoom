@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { formatPKR } from '@/lib/format';
 import type { OrderStatus } from '@/lib/types';
 import ProductManager from './ProductManager';
+import SiteManager from './SiteManager';
 
 const STATUSES: OrderStatus[] = ['pending', 'confirmed', 'dispatched', 'delivered', 'cancelled'];
 const TONE: Record<OrderStatus, string> = { pending: 'bg-amber-400/15 text-amber-200', confirmed: 'bg-sky-400/15 text-sky-200', dispatched: 'bg-violet-400/15 text-violet-200', delivered: 'bg-emerald-400/15 text-emerald-200', cancelled: 'bg-red-400/15 text-red-300' };
@@ -159,7 +160,7 @@ function Activity() {
   );
 }
 
-const TABS = ['Orders', 'Products', 'Inbox', 'Subscribers', 'Activity'] as const;
+const TABS = ['Orders', 'Products', 'Home pictures', 'Social links', 'Inbox', 'Subscribers', 'Activity'] as const;
 
 export default function AdminPanel() {
   const router = useRouter();
@@ -189,6 +190,8 @@ export default function AdminPanel() {
       </div>
       {tab === 'Orders' && <Orders onChange={reloadStats} />}
       {tab === 'Products' && <ProductManager />}
+      {tab === 'Home pictures' && <SiteManager section="pictures" />}
+      {tab === 'Social links' && <SiteManager section="social" />}
       {tab === 'Inbox' && <Inbox />}
       {tab === 'Subscribers' && <Subscribers />}
       {tab === 'Activity' && <Activity />}

@@ -3,17 +3,18 @@ import { Mail } from 'lucide-react';
 import { SITE } from '@/lib/config';
 import { supportWhatsAppUrl } from '@/lib/whatsapp';
 import ContactForm from '@/components/checkout/ContactForm';
-import { FacebookIcon, InstagramIcon, TikTokIcon, WhatsAppIcon } from '@/components/ui/icons';
+import { WhatsAppIcon } from '@/components/ui/icons';
+import { SOCIAL_BLURB, SOCIAL_ICONS } from '@/components/ui/social-icons';
+import { getSiteSettings } from '@/lib/site-settings';
 
 export const metadata: Metadata = { title: 'Contact us', description: 'Questions about an order or a fragrance? Message Makhdoom Fragrances on WhatsApp, email or the contact form.', alternates: { canonical: '/contact' } };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const { socials } = await getSiteSettings(); // links the owner manages in the dashboard (Social links tab)
   const rows = [
     { href: supportWhatsAppUrl(), label: 'WhatsApp', sub: `+${SITE.whatsapp.replace(/^(\d{2})(\d{3})(\d+)/, '$1 $2 $3')}`, Icon: WhatsAppIcon },
     { href: `mailto:${SITE.email}`, label: 'Email', sub: SITE.email, Icon: Mail },
-    { href: SITE.socials.instagram, label: 'Instagram', sub: 'Follow for new scents', Icon: InstagramIcon },
-    { href: SITE.socials.facebook, label: 'Facebook', sub: 'Join the page', Icon: FacebookIcon },
-    { href: SITE.socials.tiktok, label: 'TikTok', sub: 'Watch on TikTok', Icon: TikTokIcon },
+    ...socials.map((s) => ({ href: s.url, label: s.label, sub: SOCIAL_BLURB[s.key], Icon: SOCIAL_ICONS[s.key] })),
   ];
   return (
     <section className="container-x pb-24 pt-36 sm:pt-40">

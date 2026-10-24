@@ -2,16 +2,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { SITE } from '@/lib/config';
 import { supportWhatsAppUrl } from '@/lib/whatsapp';
-import { FacebookIcon, InstagramIcon, TikTokIcon, WhatsAppIcon } from '@/components/ui/icons';
+import { WhatsAppIcon } from '@/components/ui/icons';
+import { SOCIAL_ICONS } from '@/components/ui/social-icons';
+import { getSiteSettings } from '@/lib/site-settings';
 import Newsletter from './Newsletter';
 
-const social = [
-  { href: SITE.socials.instagram, label: 'Instagram', Icon: InstagramIcon },
-  { href: SITE.socials.facebook, label: 'Facebook', Icon: FacebookIcon },
-  { href: SITE.socials.tiktok, label: 'TikTok', Icon: TikTokIcon },
-];
-
-export default function Footer() {
+export default async function Footer() {
+  const { socials } = await getSiteSettings(); // links the owner manages in the dashboard (Social links tab)
   return (
     <footer className="relative mt-10 border-t border-white/10 bg-gradient-to-b from-transparent to-black/60">
       <div className="rule-gold" />
@@ -20,11 +17,14 @@ export default function Footer() {
           <Image src="/images/brand/logo-lockup.png" alt="Makhdoom Fragrances — Eau de Parfum" width={220} height={155} className="h-auto w-40" />
           <p className="mt-6 max-w-sm text-sm leading-relaxed text-smoke">Premium quality perfumes for men & women. Long-lasting scents at affordable prices, delivered across Pakistan.</p>
           <div className="mt-6 flex gap-3">
-            {social.map(({ href, label, Icon }) => (
-              <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-ivory/80 transition-all hover:border-gold-300 hover:text-gold-200">
-                <Icon />
-              </a>
-            ))}
+            {socials.map(({ key, url, label }) => {
+              const Icon = SOCIAL_ICONS[key];
+              return (
+                <a key={key} href={url} target="_blank" rel="noopener noreferrer" aria-label={label} className="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-ivory/80 transition-all hover:border-gold-300 hover:text-gold-200">
+                  <Icon width={20} height={20} />
+                </a>
+              );
+            })}
             <a href={supportWhatsAppUrl()} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-ivory/80 transition-all hover:border-gold-300 hover:text-gold-200">
               <WhatsAppIcon />
             </a>
