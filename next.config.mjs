@@ -8,11 +8,11 @@ try { supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.en
 // adopt per-request nonces (which forces every page to render dynamically and defeats caching). Everything else is locked down.
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' https://analytics.tiktok.com https://*.tiktok.com${prod ? '' : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline' https://analytics.tiktok.com https://*.tiktok.com https://va.vercel-scripts.com${prod ? '' : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://analytics.tiktok.com https://*.tiktok.com${supabaseOrigin ? ` ${supabaseOrigin}` : ''}`,
   "font-src 'self' data:",
-  "connect-src 'self' https://analytics.tiktok.com https://*.tiktok.com",
+  "connect-src 'self' https://analytics.tiktok.com https://*.tiktok.com https://va.vercel-scripts.com https://*.vercel-analytics.com",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "object-src 'none'",
