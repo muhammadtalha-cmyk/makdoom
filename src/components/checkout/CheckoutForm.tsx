@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Banknote, Lock } from 'lucide-react';
-import { PK_CITIES, SHIPPING } from '@/lib/config';
+import { PK_CITIES } from '@/lib/config';
 import { formatPKR } from '@/lib/format';
-import { cartShipping, cartSubtotal, useCart } from '@/lib/cart-store';
+import { cartSubtotal, useCart } from '@/lib/cart-store';
+import { useShipping } from '@/components/layout/ShippingContext';
 import type { OrderSummary } from '@/lib/types';
 
 type Errors = Partial<Record<'name' | 'phone' | 'email' | 'city' | 'address' | 'form', string>>;
@@ -47,9 +48,10 @@ export default function CheckoutForm() {
     } catch { return crypto.randomUUID(); }
   }
 
+  const { fee, freeOver, alwaysFree, shippingFor } = useShipping();
   const list = hydrated ? items : [];
   const subtotal = cartSubtotal(list);
-  const shipping = cartShipping(list);
+  const shipping = shippingFor(subtotal);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -161,7 +163,8 @@ export default function CheckoutForm() {
           <dl className="mt-6 space-y-2 border-t border-white/10 pt-5 text-sm">
             <div className="flex justify-between"><dt className="text-smoke">Subtotal</dt><dd>{formatPKR(subtotal)}</dd></div>
             <div className="flex justify-between"><dt className="text-smoke">Delivery</dt><dd>{shipping === 0 ? 'Free' : formatPKR(shipping)}</dd></div>
-            {shipping > 0 && <p className="text-xs text-gold-200">Free delivery over {formatPKR(SHIPPING.freeOver)}</p>}
+            {shipping > 0 && freeOver > 0 && !alwaysFree && <p className="text-xs text-gold-200">Free delivery over {formatPKR(freeOver)}</p>}
+            {shipping === 0 && <p className="text-xs text-emerald-300">Free delivery applied</p>}
             <div className="flex items-baseline justify-between pt-2"><dt className="font-display text-2xl">Total to pay</dt><dd className="font-display text-3xl text-gold-200">{formatPKR(subtotal + shipping)}</dd></div>
           </dl>
 

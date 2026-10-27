@@ -160,7 +160,7 @@ function Activity() {
   );
 }
 
-const TABS = ['Orders', 'Products', 'Home pictures', 'Social links', 'Inbox', 'Subscribers', 'Activity'] as const;
+const TABS = ['Orders', 'Products', 'Delivery', 'Home pictures', 'Social links', 'Inbox', 'Subscribers', 'Activity'] as const;
 
 export default function AdminPanel() {
   const router = useRouter();
@@ -190,6 +190,7 @@ export default function AdminPanel() {
       </div>
       {tab === 'Orders' && <Orders onChange={reloadStats} />}
       {tab === 'Products' && <ProductManager />}
+      {tab === 'Delivery' && <SiteManager section="shipping" />}
       {tab === 'Home pictures' && <SiteManager section="pictures" />}
       {tab === 'Social links' && <SiteManager section="social" />}
       {tab === 'Inbox' && <Inbox />}

@@ -1,6 +1,7 @@
 import { randomInt } from 'crypto';
 import { getProductsFresh } from './catalog';
 import { shippingFor } from './config';
+import { getSiteSettings } from './site-settings';
 import { getAdminClient } from './supabase';
 import { isProd } from './env';
 import { log } from './log';
@@ -28,7 +29,8 @@ export async function priceItems(items: { slug: string; quantity: number }[]) {
     lines.push({ slug: p.slug, name: p.is_bundle ? `${p.name} (${p.bundle_slugs.map((s) => s.toUpperCase()).join(' + ')})` : p.name, unit_price: p.price, quantity, line_total: p.price * quantity });
   }
   const subtotal = lines.reduce((s, l) => s + l.line_total, 0);
-  const shipping = shippingFor(subtotal);
+  const site = await getSiteSettings();
+  const shipping = shippingFor(subtotal, site.shipping);
   return { lines, subtotal, shipping, total: subtotal + shipping };
 }
 

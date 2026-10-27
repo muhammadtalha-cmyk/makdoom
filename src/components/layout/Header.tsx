@@ -3,14 +3,15 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { ShoppingBag } from 'lucide-react';
-import { NAV_LINKS, SHIPPING, SITE } from '@/lib/config';
-import { formatPKR } from '@/lib/format';
+import { NAV_LINKS, SITE } from '@/lib/config';
 import { cartCount, useCart } from '@/lib/cart-store';
+import { useShipping } from './ShippingContext';
 
 /** Minimal navigation: wordmark, bag, and one Menu button that opens a full-screen index of the site. */
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menu, setMenu] = useState(false);
+  const { bannerText } = useShipping();
   const items = useCart((s) => s.items);
   const hydrated = useCart((s) => s.hydrated);
   const setOpen = useCart((s) => s.setOpen);
@@ -43,7 +44,7 @@ export default function Header() {
     <header className="fixed inset-x-0 top-0 z-[80]">
       <div className={`overflow-hidden text-center text-[11px] font-medium tracking-wide text-gold-100 transition-all duration-500 ${scrolled || menu ? 'max-h-0 opacity-0' : 'max-h-9 opacity-100'}`}>
         <p className="whitespace-nowrap bg-gradient-to-r from-transparent via-black/70 to-transparent px-4 py-2">
-          Cash on delivery <span className="hidden sm:inline">across Pakistan</span> · Free delivery over {formatPKR(SHIPPING.freeOver)}
+          {bannerText}
         </p>
       </div>
 

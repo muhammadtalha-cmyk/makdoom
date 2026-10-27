@@ -1,6 +1,6 @@
 import { unstable_cache } from 'next/cache';
 import { z } from 'zod';
-import { SITE } from './config';
+import { SITE, SHIPPING } from './config';
 import { getAdminClient, getPublicClient } from './supabase';
 import { isAllowedImageUrl } from './product-images';
 import { log } from './log';
@@ -9,12 +9,42 @@ import { log } from './log';
  * Owner-editable site content that is NOT part of the product catalogue:
  *   - the hard-coded pictures on the home page (couple deal + the "Find the scent that fits your day" cards)
  *   - social media links
- * Stored in the `site_settings` table (two rows: `home_images` and `social_links`). Every value is optional: anything
- * the owner has not changed falls back to the bundled picture / the NEXT_PUBLIC_*_URL environment variable.
+ *   - delivery charges, free delivery offer / threshold, and announcement bar
+ * Stored in the `site_settings` table (`home_images`, `social_links`, `shipping`). Every value is optional: anything
+ * the owner has not changed falls back to the bundled defaults / environment variables.
  */
 export const SETTINGS_TAG = 'site-settings';
 export const IMAGES_ROW = 'home_images';
 export const SOCIALS_ROW = 'social_links';
+export const SHIPPING_ROW = 'shipping';
+
+/* ------------------------------------------------------------------ shipping & delivery */
+
+export interface ShippingSettings {
+  /** Delivery charge in PKR (e.g. 250, or 0 for free) */
+  fee: number;
+  /** Free delivery for orders at or above this PKR amount (e.g. 4000) */
+  freeOver: number;
+  /** Special offer toggle: makes delivery 100% free nationwide on all orders */
+  alwaysFree: boolean;
+  /** Custom announcement bar text (optional, leave blank for automatic) */
+  banner: string;
+}
+
+export const DEFAULT_SHIPPING: ShippingSettings = {
+  fee: SHIPPING.fee,
+  freeOver: SHIPPING.freeOver,
+  alwaysFree: false,
+  banner: '',
+};
+
+export function calcShipping(subtotal: number, settings?: ShippingSettings): number {
+  if (subtotal <= 0) return 0;
+  const s = settings ?? DEFAULT_SHIPPING;
+  if (s.alwaysFree || s.fee === 0) return 0;
+  if (s.freeOver > 0 && subtotal >= s.freeOver) return 0;
+  return s.fee;
+}
 
 /* ------------------------------------------------------------------ home pictures */
 
@@ -81,9 +111,23 @@ export const adminSitePatch = z
   .object({
     images: shape(IMAGE_SLOTS.map((s) => s.key), imageUrl).optional(),
     socials: shape(SOCIAL_PLATFORMS.map((p) => p.key), z.string().trim().max(300)).optional(),
+    shipping: z
+      .object({
+        fee: z.number().int().min(0).max(50000),
+        freeOver: z.number().int().min(0).max(500000),
+        alwaysFree: z.boolean(),
+        banner: z.string().trim().max(200).optional(),
+      })
+      .optional(),
   })
   .strict()
-  .refine((v) => Boolean(v.images && Object.keys(v.images).length) || Boolean(v.socials && Object.keys(v.socials).length), 'Nothing to update.');
+  .refine(
+    (v) =>
+      Boolean(v.images && Object.keys(v.images).length) ||
+      Boolean(v.socials && Object.keys(v.socials).length) ||
+      Boolean(v.shipping),
+    'Nothing to update.'
+  );
 
 /* ------------------------------------------------------------------ resolving what the website shows */
 
@@ -94,6 +138,7 @@ export interface SiteSettings {
   customImages: Partial<Record<ImageKey, string>>;
   /** links to show, in display order */
   socials: { key: SocialKey; label: string; url: string }[];
+  shipping: ShippingSettings;
 }
 
 const env: Record<string, string | undefined> = { instagram: SITE.socials.instagram, facebook: SITE.socials.facebook, tiktok: SITE.socials.tiktok };
@@ -102,6 +147,7 @@ const env: Record<string, string | undefined> = { instagram: SITE.socials.instag
 export function resolveSettings(rows: Record<string, unknown>): SiteSettings {
   const imgRaw = (rows[IMAGES_ROW] && typeof rows[IMAGES_ROW] === 'object' ? rows[IMAGES_ROW] : {}) as Raw;
   const socRaw = (rows[SOCIALS_ROW] && typeof rows[SOCIALS_ROW] === 'object' ? rows[SOCIALS_ROW] : {}) as Raw;
+  const shipRaw = (rows[SHIPPING_ROW] && typeof rows[SHIPPING_ROW] === 'object' ? rows[SHIPPING_ROW] : {}) as Raw;
 
   const customImages: Partial<Record<ImageKey, string>> = {};
   const images = {} as Record<ImageKey, string>;
@@ -118,13 +164,21 @@ export function resolveSettings(rows: Record<string, unknown>): SiteSettings {
     const url = fromDb ?? fromEnv;
     if (url) socials.push({ key: p.key, label: p.label, url });
   }
-  return { images, customImages, socials };
+
+  const fee = typeof shipRaw.fee === 'number' && Number.isFinite(shipRaw.fee) && shipRaw.fee >= 0 ? Math.round(shipRaw.fee) : SHIPPING.fee;
+  const freeOver = typeof shipRaw.freeOver === 'number' && Number.isFinite(shipRaw.freeOver) && shipRaw.freeOver >= 0 ? Math.round(shipRaw.freeOver) : SHIPPING.freeOver;
+  const alwaysFree = typeof shipRaw.alwaysFree === 'boolean' ? shipRaw.alwaysFree : fee === 0;
+  const banner = typeof shipRaw.banner === 'string' ? shipRaw.banner.trim().slice(0, 200) : '';
+
+  const shipping: ShippingSettings = { fee, freeOver, alwaysFree, banner };
+
+  return { images, customImages, socials, shipping };
 }
 
 async function fetchRows(): Promise<Record<string, unknown>> {
   const client = getPublicClient() ?? getAdminClient();
   if (!client) throw new Error('database not configured');
-  const { data, error } = await client.from('site_settings').select('key, value').in('key', [IMAGES_ROW, SOCIALS_ROW]);
+  const { data, error } = await client.from('site_settings').select('key, value').in('key', [IMAGES_ROW, SOCIALS_ROW, SHIPPING_ROW]);
   if (error) throw new Error(error.message);
   return Object.fromEntries((data ?? []).map((r: { key: string; value: unknown }) => [r.key, r.value]));
 }

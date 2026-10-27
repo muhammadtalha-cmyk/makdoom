@@ -41,7 +41,7 @@ const orgJsonLd = (sameAs: string[]) => ({
 });
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { socials } = await getSiteSettings();
+  const { socials, shipping } = await getSiteSettings();
   return (
     <html lang="en-PK" className="mk-boot">
       <body>
@@ -62,7 +62,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         <noscript><style>{'html.mk-boot .hero-rise{animation:rise 1s both;opacity:1}.mk-loader{display:none!important}'}</style></noscript>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd(socials.map((s) => s.url))) }} />
         <SiteLoader />
-        <Providers>
+        <Providers shipping={shipping}>
           <a href="#main" className="sr-only z-[100] rounded-full bg-gold-300 px-4 py-2 font-semibold text-black focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
           <Header />
           <main id="main">{children}</main>

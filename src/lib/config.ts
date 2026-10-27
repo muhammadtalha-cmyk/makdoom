@@ -42,7 +42,11 @@ export const NAV_LINKS = [
   { href: '/contact', label: 'Contact' },
 ];
 
-export function shippingFor(subtotal: number) {
+export function shippingFor(subtotal: number, custom?: { fee?: number; freeOver?: number; alwaysFree?: boolean }) {
   if (subtotal <= 0) return 0;
-  return subtotal >= SHIPPING.freeOver ? 0 : SHIPPING.fee;
+  if (custom?.alwaysFree) return 0;
+  const fee = custom?.fee !== undefined ? custom.fee : SHIPPING.fee;
+  if (fee === 0) return 0;
+  const freeOver = custom?.freeOver !== undefined ? custom.freeOver : SHIPPING.freeOver;
+  return freeOver > 0 && subtotal >= freeOver ? 0 : fee;
 }

@@ -4,21 +4,24 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { Minus, Plus, Trash2, X } from 'lucide-react';
-import { SHIPPING } from '@/lib/config';
 import { formatPKR, waLink } from '@/lib/format';
 import { SITE } from '@/lib/config';
-import { cartShipping, cartSubtotal, useCart } from '@/lib/cart-store';
+import { cartSubtotal, useCart } from '@/lib/cart-store';
 import { WhatsAppIcon } from '@/components/ui/icons';
+import { useShipping } from './ShippingContext';
 
 export default function CartDrawer() {
   const { items, open, setOpen, setQty, remove, hydrated } = useCart();
+  const { fee, freeOver, alwaysFree, shippingFor } = useShipping();
   const closeRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
   const list = hydrated ? items : [];
   const subtotal = cartSubtotal(list);
-  const shipping = cartShipping(list);
-  const remaining = Math.max(0, SHIPPING.freeOver - subtotal);
-  const progress = Math.min(100, (subtotal / SHIPPING.freeOver) * 100);
+  const shipping = shippingFor(subtotal);
+  const isFree = alwaysFree || fee === 0;
+  const hasThreshold = !isFree && freeOver > 0;
+  const remaining = hasThreshold ? Math.max(0, freeOver - subtotal) : 0;
+  const progress = isFree ? 100 : hasThreshold ? Math.min(100, (subtotal / freeOver) * 100) : 0;
 
   useEffect(() => {
     if (!open) return;
@@ -59,11 +62,21 @@ export default function CartDrawer() {
           <>
             <div className="px-6 pt-4">
               <p className="mb-2 text-xs text-ivory/75">
-                {remaining > 0 ? <>Add <strong className="text-gold-200">{formatPKR(remaining)}</strong> more for free delivery</> : <strong className="text-gold-200">You have free delivery</strong>}
+                {isFree ? (
+                  <strong className="text-gold-200">You have free delivery on all orders</strong>
+                ) : hasThreshold && remaining > 0 ? (
+                  <>Add <strong className="text-gold-200">{formatPKR(remaining)}</strong> more for free delivery</>
+                ) : hasThreshold ? (
+                  <strong className="text-gold-200">You have free delivery</strong>
+                ) : (
+                  <span>Delivery: <strong className="text-gold-200">{formatPKR(fee)}</strong></span>
+                )}
               </p>
-              <div className="h-1 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full rounded-full bg-gradient-to-r from-gold-500 to-gold-100 transition-[width] duration-700" style={{ width: `${progress}%` }} />
-              </div>
+              {hasThreshold && (
+                <div className="h-1 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full rounded-full bg-gradient-to-r from-gold-500 to-gold-100 transition-[width] duration-700" style={{ width: `${progress}%` }} />
+                </div>
+              )}
             </div>
 
             <ul className="no-scrollbar flex-1 space-y-4 overflow-y-auto px-6 py-5">

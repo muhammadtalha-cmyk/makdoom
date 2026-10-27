@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface ImageSlot { key: string; label: string; where: string; hint: string; original: string; current: string; custom: boolean }
 interface SocialRow { key: string; label: string; example: string; url: string }
-interface Loaded { images: ImageSlot[]; socials: SocialRow[] }
+interface ShippingData { fee: number; freeOver: number; alwaysFree: boolean; banner?: string }
+interface Loaded { images: ImageSlot[]; socials: SocialRow[]; shipping: ShippingData }
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const isForm = init?.body instanceof FormData;
@@ -161,9 +162,199 @@ function SocialLinks({ data, reload }: { data: Loaded; reload: () => Promise<voi
   );
 }
 
+/* ---------------------------------------------------------------- shipping & delivery */
+
+function DeliverySettings({ data, reload }: { data: Loaded; reload: () => Promise<void> }) {
+  const current = data.shipping;
+  const [fee, setFee] = useState<string>(String(current.fee));
+  const [freeOver, setFreeOver] = useState<string>(String(current.freeOver));
+  const [alwaysFree, setAlwaysFree] = useState<boolean>(current.alwaysFree);
+  const [banner, setBanner] = useState<string>(current.banner ?? '');
+
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string }>({ ok: true, text: '' });
+
+  const parsedFee = Math.max(0, Number(fee) || 0);
+  const parsedFreeOver = Math.max(0, Number(freeOver) || 0);
+  const isDirty =
+    parsedFee !== current.fee ||
+    parsedFreeOver !== current.freeOver ||
+    alwaysFree !== current.alwaysFree ||
+    banner.trim() !== (current.banner ?? '').trim();
+
+  async function save() {
+    setSaving(true);
+    setMsg({ ok: true, text: '' });
+    try {
+      await api('/api/admin/site', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          shipping: {
+            fee: parsedFee,
+            freeOver: parsedFreeOver,
+            alwaysFree,
+            banner: banner.trim(),
+          },
+        }),
+      });
+      await reload();
+      setMsg({ ok: true, text: 'Saved. Delivery charges and offers are now live on the website!' });
+    } catch (e) {
+      setMsg({ ok: false, text: (e as Error).message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const previewBanner = banner.trim()
+    ? banner.trim()
+    : alwaysFree || parsedFee === 0
+    ? 'Cash on delivery across Pakistan · Free delivery on all orders'
+    : parsedFreeOver > 0
+    ? `Cash on delivery across Pakistan · Free delivery over Rs. ${parsedFreeOver.toLocaleString('en-PK')}`
+    : `Cash on delivery across Pakistan · Delivery Rs. ${parsedFee.toLocaleString('en-PK')}`;
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-gold-300/20 bg-gold-400/5 p-4 sm:p-5">
+        <h3 className="font-display text-xl text-gold-200">Delivery charges & offers</h3>
+        <p className="mt-1 text-xs text-smoke leading-relaxed">
+          Change your standard delivery fee, set up free delivery thresholds, or turn on a special free shipping promotion across Pakistan anytime.
+        </p>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2">
+        <div className="surface rounded-2xl p-5">
+          <label htmlFor="ship-fee" className="block text-sm font-semibold">
+            Standard delivery fee (PKR)
+          </label>
+          <p className="mt-0.5 text-xs text-smoke">Default fee charged at checkout (e.g. 250). Set to 0 for free.</p>
+          <div className="mt-3 flex items-center gap-3">
+            <span className="text-sm font-semibold text-smoke">Rs.</span>
+            <input
+              id="ship-fee"
+              type="number"
+              min="0"
+              step="10"
+              className="field flex-1"
+              value={fee}
+              disabled={alwaysFree}
+              onChange={(e) => setFee(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="surface rounded-2xl p-5">
+          <label htmlFor="ship-freeOver" className="block text-sm font-semibold">
+            Free delivery over order value (PKR)
+          </label>
+          <p className="mt-0.5 text-xs text-smoke">Orders at or above this amount ship free (e.g. 4000). Set to 0 if not offering a threshold.</p>
+          <div className="mt-3 flex items-center gap-3">
+            <span className="text-sm font-semibold text-smoke">Rs.</span>
+            <input
+              id="ship-freeOver"
+              type="number"
+              min="0"
+              step="100"
+              className="field flex-1"
+              value={freeOver}
+              disabled={alwaysFree}
+              onChange={(e) => setFreeOver(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="surface rounded-2xl p-5">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={alwaysFree}
+            onChange={(e) => setAlwaysFree(e.target.checked)}
+            className="mt-1 h-5 w-5 rounded border-white/20 bg-white/10 text-gold-400 focus:ring-gold-300"
+          />
+          <div>
+            <span className="text-sm font-semibold text-ivory">Special Offer: Free delivery on ALL orders</span>
+            <p className="mt-0.5 text-xs text-smoke">
+              When checked, delivery charges will be Rs. 0 for every customer regardless of their cart total.
+            </p>
+          </div>
+        </label>
+      </div>
+
+      <div className="surface rounded-2xl p-5">
+        <label htmlFor="ship-banner" className="block text-sm font-semibold">
+          Announcement bar banner text (Optional)
+        </label>
+        <p className="mt-0.5 text-xs text-smoke">
+          Custom message for the top bar of the website. Leave empty to automatically display the standard delivery note.
+        </p>
+        <input
+          id="ship-banner"
+          type="text"
+          maxLength={200}
+          className="field mt-3 w-full"
+          placeholder="e.g. Weekend Flash Sale: Free Delivery on all orders!"
+          value={banner}
+          onChange={(e) => setBanner(e.target.value)}
+        />
+      </div>
+
+      <div className="surface rounded-2xl p-5 border border-white/10">
+        <p className="text-xs font-semibold uppercase tracking-wider text-smoke">Customer preview</p>
+        <div className="mt-3 rounded-xl border border-gold-300/30 bg-black/50 p-3 text-center text-xs text-gold-100">
+          <span className="text-[10px] uppercase tracking-widest text-smoke block mb-1">Top announcement bar</span>
+          <strong>{previewBanner}</strong>
+        </div>
+        <p className="mt-3 text-xs text-smoke">
+          {alwaysFree || parsedFee === 0 ? (
+            <span className="text-emerald-300">✓ Customers pay <strong>Rs. 0</strong> delivery on any order.</span>
+          ) : parsedFreeOver > 0 ? (
+            <span>
+              Orders under <strong>Rs. {parsedFreeOver.toLocaleString('en-PK')}</strong> pay <strong>Rs. {parsedFee.toLocaleString('en-PK')}</strong>. Orders of <strong>Rs. {parsedFreeOver.toLocaleString('en-PK')}</strong> or more get <strong>Free delivery</strong>.
+            </span>
+          ) : (
+            <span>
+              All orders pay <strong>Rs. {parsedFee.toLocaleString('en-PK')}</strong> flat delivery fee.
+            </span>
+          )}
+        </p>
+      </div>
+
+      <Notice {...msg} />
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          className="btn btn-gold"
+          disabled={saving || !isDirty}
+          onClick={save}
+        >
+          {saving ? 'Saving…' : 'Save delivery settings'}
+        </button>
+        {isDirty && (
+          <button
+            type="button"
+            className="text-sm text-smoke underline"
+            onClick={() => {
+              setFee(String(current.fee));
+              setFreeOver(String(current.freeOver));
+              setAlwaysFree(current.alwaysFree);
+              setBanner(current.banner ?? '');
+              setMsg({ ok: true, text: '' });
+            }}
+          >
+            Discard
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------------- shell */
 
-export default function SiteManager({ section }: { section: 'pictures' | 'social' }) {
+export default function SiteManager({ section }: { section: 'pictures' | 'social' | 'shipping' }) {
   const [data, setData] = useState<Loaded | null>(null);
   const [error, setError] = useState('');
   const load = useCallback(async () => {
@@ -173,5 +364,7 @@ export default function SiteManager({ section }: { section: 'pictures' | 'social
 
   if (error) return <p role="alert" className="rounded-xl bg-red-400/10 px-4 py-3 text-sm text-red-300">{error}</p>;
   if (!data) return <p className="py-10 text-center text-smoke">Loading…</p>;
-  return section === 'pictures' ? <HomePictures data={data} reload={load} /> : <SocialLinks data={data} reload={load} />;
+  if (section === 'pictures') return <HomePictures data={data} reload={load} />;
+  if (section === 'social') return <SocialLinks data={data} reload={load} />;
+  return <DeliverySettings data={data} reload={load} />;
 }

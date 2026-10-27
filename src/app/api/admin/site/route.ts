@@ -5,7 +5,7 @@ import { getAdminClient } from '@/lib/supabase';
 import { HttpError, json, readJson } from '@/lib/security';
 import { IMAGE_BUCKET, storagePathOf } from '@/lib/product-images';
 import {
-  IMAGES_ROW, IMAGE_SLOTS, SETTINGS_TAG, SOCIALS_ROW, SOCIAL_PLATFORMS,
+  IMAGES_ROW, IMAGE_SLOTS, SETTINGS_TAG, SOCIALS_ROW, SOCIAL_PLATFORMS, SHIPPING_ROW,
   adminSitePatch, normalizeSocialUrl, resolveSettings, type ImageKey, type SocialKey,
 } from '@/lib/site-settings';
 
@@ -27,7 +27,7 @@ const dbFail = (error: { message: string; code?: string }, fallback: string): ne
 
 async function readRows() {
   const db = need();
-  const { data, error } = await db.from('site_settings').select('key, value').in('key', [IMAGES_ROW, SOCIALS_ROW]);
+  const { data, error } = await db.from('site_settings').select('key, value').in('key', [IMAGES_ROW, SOCIALS_ROW, SHIPPING_ROW]);
   if (error) return dbFail(error, 'Could not load the settings.');
   return Object.fromEntries((data ?? []).map((r: { key: string; value: unknown }) => [r.key, r.value])) as Record<string, unknown>;
 }
@@ -47,17 +47,18 @@ export const GET = adminRoute('site.read', false, async () => {
       key: p.key, label: p.label, example: p.example,
       url: typeof savedSocials[p.key] === 'string' ? normalizeSocialUrl(p.key, savedSocials[p.key]) ?? '' : '',
     })),
+    shipping: settings.shipping,
   });
 });
 
 export const PATCH = adminRoute('site.update', true, async (req) => {
   const parsed = adminSitePatch.safeParse(await readJson(req, 16 * 1024));
   if (!parsed.success) throw new HttpError(422, parsed.error.issues[0]?.message ?? 'Invalid data.');
-  const { images, socials } = parsed.data;
+  const { images, socials, shipping } = parsed.data;
   const db = need();
   const rows = await readRows();
   const now = new Date().toISOString();
-  const upserts: { key: string; value: Record<string, string>; updated_at: string }[] = [];
+  const upserts: { key: string; value: Record<string, unknown>; updated_at: string }[] = [];
   const removedImages: string[] = [];
 
   if (images) {
@@ -83,12 +84,29 @@ export const PATCH = adminRoute('site.update', true, async (req) => {
     upserts.push({ key: SOCIALS_ROW, value: next, updated_at: now });
   }
 
+  if (shipping) {
+    upserts.push({
+      key: SHIPPING_ROW,
+      value: {
+        fee: shipping.fee,
+        freeOver: shipping.freeOver,
+        alwaysFree: shipping.alwaysFree,
+        banner: shipping.banner ?? '',
+      },
+      updated_at: now,
+    });
+  }
+
   const { error } = await db.from('site_settings').upsert(upserts, { onConflict: 'key' });
   if (error) return dbFail(error, 'Could not save your changes. Please try again.');
 
   revalidateTag(SETTINGS_TAG); // the storefront shows the change immediately instead of after the cache window
   revalidatePath('/', 'layout');
-  await audit(req, 'site.update', 'settings', { images: images ? Object.keys(images) : [], socials: socials ? Object.keys(socials) : [] });
+  await audit(req, 'site.update', 'settings', {
+    images: images ? Object.keys(images) : [],
+    socials: socials ? Object.keys(socials) : [],
+    shipping: Boolean(shipping),
+  });
   if (removedImages.length) void removeUnusedImages(removedImages);
 
   const saved = Object.fromEntries(upserts.map((u) => [u.key, u.value]));

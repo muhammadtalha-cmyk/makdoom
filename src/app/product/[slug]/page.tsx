@@ -3,8 +3,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Banknote, ShieldCheck, Truck } from 'lucide-react';
 import { getProduct, getProducts } from '@/lib/catalog';
+import { getSiteSettings } from '@/lib/site-settings';
 import { PRODUCTS } from '@/lib/products-data';
-import { SITE, SHIPPING } from '@/lib/config';
+import { SITE } from '@/lib/config';
 import { formatPKR } from '@/lib/format';
 import ProductGallery from '@/components/shop/ProductGallery';
 import PurchasePanel from '@/components/shop/PurchasePanel';
@@ -32,8 +33,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [product, all] = await Promise.all([getProduct(slug), getProducts()]);
+  const [product, all, site] = await Promise.all([getProduct(slug), getProducts(), getSiteSettings()]);
   if (!product) notFound();
+
+  const ship = site.shipping;
+  const shipText = ship.alwaysFree || ship.fee === 0
+    ? 'Free delivery nationwide'
+    : ship.freeOver > 0
+    ? `Free delivery over ${formatPKR(ship.freeOver)}`
+    : `Delivery ${formatPKR(ship.fee)}`;
 
   const included = product.bundle_slugs.map((s) => all.find((p) => p.slug === s)).filter(Boolean);
   const related = all.filter((p) => p.slug !== product.slug && !p.is_bundle).slice(0, 4);
@@ -84,7 +92,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
             <ul className="mt-8 grid gap-4 border-t border-white/10 pt-8 text-sm sm:grid-cols-3">
               <li className="flex gap-3"><Banknote size={22} strokeWidth={1.3} className="shrink-0 text-gold-300" /><span>Cash on delivery</span></li>
-              <li className="flex gap-3"><Truck size={22} strokeWidth={1.3} className="shrink-0 text-gold-300" /><span>Free delivery over {formatPKR(SHIPPING.freeOver)}</span></li>
+              <li className="flex gap-3"><Truck size={22} strokeWidth={1.3} className="shrink-0 text-gold-300" /><span>{shipText}</span></li>
               <li className="flex gap-3"><ShieldCheck size={22} strokeWidth={1.3} className="shrink-0 text-gold-300" /><span>Comes in a black gift box</span></li>
             </ul>
           </div>

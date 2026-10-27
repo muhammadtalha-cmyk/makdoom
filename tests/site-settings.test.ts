@@ -23,16 +23,31 @@ test('settings: defaults when nothing is saved, overrides when valid, junk is ig
   const base = resolveSettings({});
   assert.equal(base.images.couple, '/images/story/couple-wide.webp');
   assert.deepEqual(base.customImages, {});
-  const s = resolveSettings({ home_images: { couple: '/images/story/zest-leaf-wide.webp', mood_nova: 'https://evil.com/x.png', bogus: 1 }, social_links: { instagram: 'https://www.instagram.com/mk', tiktok: 'javascript:alert(1)' } });
+  assert.equal(base.shipping.fee, 250);
+  assert.equal(base.shipping.freeOver, 4000);
+  assert.equal(base.shipping.alwaysFree, false);
+  assert.equal(base.shipping.banner, '');
+  const s = resolveSettings({
+    home_images: { couple: '/images/story/zest-leaf-wide.webp', mood_nova: 'https://evil.com/x.png', bogus: 1 },
+    social_links: { instagram: 'https://www.instagram.com/mk', tiktok: 'javascript:alert(1)' },
+    shipping: { fee: 300, freeOver: 5000, alwaysFree: true, banner: 'Promo delivery' },
+  });
   assert.equal(s.images.couple, '/images/story/zest-leaf-wide.webp');
   assert.equal(s.images.mood_nova, '/images/story/nova-wide.webp'); // foreign picture rejected → bundled one
   assert.deepEqual(s.socials.map((x) => x.key), ['instagram']);
+  assert.equal(s.shipping.fee, 300);
+  assert.equal(s.shipping.freeOver, 5000);
+  assert.equal(s.shipping.alwaysFree, true);
+  assert.equal(s.shipping.banner, 'Promo delivery');
 });
 
-test('admin patch: validates pictures and links, allows null to reset, rejects unknown keys and empty requests', () => {
+test('admin patch: validates pictures, links and shipping, allows null to reset, rejects unknown keys and empty requests', () => {
   assert.ok(adminSitePatch.safeParse({ images: { couple: null } }).success);
   assert.ok(adminSitePatch.safeParse({ images: { couple: '/images/story/couple-wide.webp' } }).success);
   assert.ok(adminSitePatch.safeParse({ socials: { facebook: 'https://www.facebook.com/x', tiktok: null } }).success);
+  assert.ok(adminSitePatch.safeParse({ shipping: { fee: 200, freeOver: 3500, alwaysFree: false } }).success);
+  assert.ok(adminSitePatch.safeParse({ shipping: { fee: 0, freeOver: 0, alwaysFree: true, banner: 'Free Shipping' } }).success);
+  assert.ok(!adminSitePatch.safeParse({ shipping: { fee: -50, freeOver: 4000, alwaysFree: false } }).success);
   assert.ok(!adminSitePatch.safeParse({ images: { couple: 'https://evil.com/a.png' } }).success);
   assert.ok(!adminSitePatch.safeParse({ images: { hero: '/images/a.webp' } }).success);
   assert.ok(!adminSitePatch.safeParse({ images: {} }).success);
